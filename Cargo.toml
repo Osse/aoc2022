@@ -1,0 +1,109 @@
+[package]
+name = "aoc2022"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+regex = "*"
+
+[[bin]]
+name = "1"
+path = "src/1.rs"
+
+[[bin]]
+name = "2"
+path = "src/2.rs"
+
+[[bin]]
+name = "3"
+path = "src/3.rs"
+
+[[bin]]
+name = "4"
+path = "src/4.rs"
+
+[[bin]]
+name = "5"
+path = "src/5.rs"
+
+[[bin]]
+name = "6"
+path = "src/6.rs"
+
+[[bin]]
+name = "7"
+path = "src/7.rs"
+
+[[bin]]
+name = "8"
+path = "src/8.rs"
+
+[[bin]]
+name = "9"
+path = "src/9.rs"
+
+[[bin]]
+name = "10"
+path = "src/10.rs"
+
+[[bin]]
+name = "11"
+path = "src/11.rs"
+
+[[bin]]
+name = "12"
+path = "src/12.rs"
+
+[[bin]]
+name = "13"
+path = "src/13.rs"
+
+[[bin]]
+name = "14"
+path = "src/14.rs"
+
+[[bin]]
+name = "15"
+path = "src/15.rs"
+
+[[bin]]
+name = "16"
+path = "src/16.rs"
+
+[[bin]]
+name = "17"
+path = "src/17.rs"
+
+[[bin]]
+name = "18"
+path = "src/18.rs"
+
+[[bin]]
+name = "19"
+path = "src/19.rs"
+
+[[bin]]
+name = "20"
+path = "src/20.rs"
+
+[[bin]]
+name = "21"
+path = "src/21.rs"
+
+[[bin]]
+name = "22"
+path = "src/22.rs"
+
+[[bin]]
+name = "23"
+path = "src/23.rs"
+
+[[bin]]
+name = "24"
+path = "src/24.rs"
+
+[[bin]]
+name = "25"
+path = "src/25.rs"

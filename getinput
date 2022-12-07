@@ -1,0 +1,5 @@
+#!/bin/sh
+
+for i in "$@"; do
+    curl -s --cookie "session=$AOC_SESSION" "https://adventofcode.com/2022/day/$i/input" > "inputs/$i.txt"
+done
