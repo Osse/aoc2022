@@ -1,6 +1,4 @@
-use std::cell::RefCell;
-use std::ops::Fn;
-use std::rc::Rc;
+mod tree;
 
 #[derive(Debug)]
 enum Line {
@@ -16,6 +14,12 @@ enum Command {
 
 #[derive(Debug)]
 enum Output {
+    File(usize, String),
+    Dir(String),
+}
+
+#[derive(Debug)]
+enum FsEntry {
     File(usize, String),
     Dir(String),
 }
@@ -37,106 +41,38 @@ fn parse_line(line: &str) -> Line {
     }
 }
 
-#[derive(Debug)]
-struct Tree<T> {
-    root: Node<T>,
-}
+fn main() {
+    let contents = std::fs::read_to_string("inputs/7.txt").expect("read input");
+    // let mut t = tree::Tree::<FsEntry>::new(0);
 
-impl<T> Tree<T> {
-    fn new(data: T) -> Self {
-        Tree {
-            root: Node {
-                data,
-                parent: None,
-                children: RefCell::default(),
+    let mut path = String::new();
+    for l in contents.lines().map(parse_line) {
+        match l {
+            Line::Command(c) => match c {
+                Command::Cd(dir) => {
+                    if dir.starts_with("/") {
+                        path = dir;
+                    }
+                }
+                Command::Ls => (),
+            },
+            Line::Output(o) => match o {
+                Output::Dir(dir) => {}
+                Output::File(sz, name) => {}
             },
         }
     }
 
-    fn root<'a>(&mut self) -> Rc<Node<T>> {
-        unsafe { Rc::from_raw(&self.root) }
-    }
+    // let r = t.root();
+    // r.append_child(5);
+    // r.append_child(6);
 
-    fn walk<F>(&self, f: F)
-    where
-        F: Fn(usize, &T),
-    {
-        self.root.walk(0, &f)
-    }
-}
+    // let c = r.child(1);
 
-struct Node<T> {
-    data: T,
-    parent: Option<Rc<Node<T>>>,
-    children: RefCell<Vec<Rc<Node<T>>>>,
-}
+    // c.append_child(7);
+    // c.append_child(8);
 
-impl<T> std::fmt::Debug for Node<T>
-where
-    T: std::fmt::Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Node")
-            .field("data", &self.data)
-            .field("parent", &self.parent.is_some())
-            .field("children", &self.children)
-            .finish()
-    }
-}
+    // r.append_child(9);
 
-impl<T> Node<T> {
-    fn new(data: T, parent: Rc<Node<T>>) -> Self {
-        Node {
-            data,
-            parent: Some(parent),
-            children: RefCell::default(),
-        }
-    }
-    fn append_child(&self, data: T) {
-        let n = Node {
-            data,
-            parent: Some(unsafe { Rc::from_raw(&*self) }),
-            children: RefCell::default(),
-        };
-
-        self.children.borrow_mut().push(Rc::new(n));
-    }
-
-    fn child(&self, index: usize) -> Rc<Node<T>> {
-        self.children
-            .borrow()
-            .get(index)
-            .expect("valid index")
-            .clone()
-    }
-
-    fn walk<F>(&self, level: usize, f: &F)
-    where
-        F: Fn(usize, &T),
-    {
-        f(level, &self.data);
-        for c in self.children.borrow().iter() {
-            c.walk(level + 1, f);
-        }
-    }
-}
-
-fn main() {
-    // let contents = std::fs::read_to_string("inputs/7.txt").expect("read input");
-    // for l in contents.lines().map(parse_line) {}
-
-    let mut t = Tree::<i32>::new(0);
-
-    let mut r = t.root();
-    r.append_child(5);
-    r.append_child(6);
-
-    let mut c = r.child(1);
-
-    c.append_child(7);
-    c.append_child(8);
-
-    r.append_child(9);
-
-    t.walk(|level, number| println!("{}{}", " ".repeat(level * 4), number));
+    // t.walk(|level, number| println!("{}{}", " ".repeat(level * 4), number));
 }
