@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::ops::FnMut;
 use std::rc::Rc;
@@ -40,12 +39,7 @@ where
         self.move_node_by_index(&p, index, new_parent);
     }
 
-    pub fn move_node_by_index(
-        &self,
-        old_parent: &Rc<Node<T>>,
-        index: usize,
-        new_parent: &Rc<Node<T>>,
-    ) {
+    fn move_node_by_index(&self, old_parent: &Rc<Node<T>>, index: usize, new_parent: &Rc<Node<T>>) {
         let n = old_parent.remove(index);
         new_parent.append_node(n);
     }
@@ -108,7 +102,7 @@ where
         self.children.borrow().len()
     }
 
-    fn walk<F>(&self, level: usize, f: &mut F)
+    pub fn walk<F>(&self, level: usize, f: &mut F)
     where
         F: FnMut(usize, &T),
     {
@@ -118,7 +112,7 @@ where
         }
     }
 
-    fn parent(&self) -> Option<Rc<Node<T>>> {
+    pub fn parent(&self) -> Option<Rc<Node<T>>> {
         let kek = self.parent_.borrow();
         match kek.as_ref() {
             Some(p) => Some(p.clone()),
@@ -237,40 +231,22 @@ mod tests {
         c1.append_child(String::from("rofl"));
         c1.append_child(String::from("mao"));
 
-        eprintln!("");
-        t.walk(|level, s| {
-            eprintln!("{}{}", "  ".repeat(level), s);
-        });
-
         let removed = r.remove(2);
-
-        eprintln!("");
-        t.walk(|level, s| {
-            eprintln!("{}{}", "  ".repeat(level), s);
-        });
 
         r.child(1).append_node(removed);
 
-        eprintln!("");
-        t.walk(|level, s| {
-            eprintln!("{}{}", "  ".repeat(level), s);
-        });
+        let c_to_move = c1.child(2);
 
-        let kek = c1.child(2);
+        assert!(
+            Rc::ptr_eq(&c_to_move.parent().unwrap(), &c1),
+            "old parent is c1"
+        );
 
-        assert!(Rc::ptr_eq(&kek.parent().unwrap(), &c1), "old parent is c1");
+        assert_eq!(c_to_move.data, String::from("child3"));
 
-        assert_eq!(kek.data, String::from("child3"));
-
-        t.move_node(&kek, &r);
-
-        eprintln!("");
-        t.walk(|level, s| {
-            eprintln!("{}{}", "  ".repeat(level), s);
-        });
+        t.move_node(&c_to_move, &r);
 
         assert_eq!(r.child_len(), 3);
-
         assert!(Rc::ptr_eq(&kek.parent().unwrap(), &r), "new parent is root");
     }
 
