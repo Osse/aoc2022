@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::ops::FnMut;
 use std::rc::Rc;
@@ -7,12 +8,15 @@ pub struct Tree<T> {
     root: Node<T>,
 }
 
-impl<T> Tree<T> {
+impl<T> Tree<T>
+where
+    T: std::fmt::Debug,
+{
     pub fn new(data: T) -> Self {
         Tree {
             root: Node {
                 data,
-                parent_: None,
+                parent_: RefCell::new(None),
                 children: RefCell::default(),
             },
         }
@@ -22,17 +26,34 @@ impl<T> Tree<T> {
         unsafe { Rc::from_raw(&self.root) }
     }
 
-    pub fn walk<F>(&self, f: F)
+    pub fn walk<F>(&self, mut f: F)
     where
         F: FnMut(usize, &T),
     {
         self.root.walk(0, &mut f)
     }
+
+    pub fn move_node(&self, n: &Rc<Node<T>>, new_parent: &Rc<Node<T>>) {
+        let p = n.parent().unwrap();
+        let index = n.index();
+
+        self.move_node_by_index(&p, index, new_parent);
+    }
+
+    pub fn move_node_by_index(
+        &self,
+        old_parent: &Rc<Node<T>>,
+        index: usize,
+        new_parent: &Rc<Node<T>>,
+    ) {
+        let n = old_parent.remove(index);
+        new_parent.append_node(n);
+    }
 }
 
 pub struct Node<T> {
     data: T,
-    parent_: Option<Rc<Node<T>>>,
+    parent_: RefCell<Option<Rc<Node<T>>>>,
     children: RefCell<Vec<Rc<Node<T>>>>,
 }
 
@@ -43,17 +64,20 @@ where
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Node")
             .field("data", &self.data)
-            .field("parent", &self.parent_.is_some())
+            .field("parent", &self.parent_.borrow().is_some())
             .field("children", &self.children)
             .finish()
     }
 }
 
-impl<T> Node<T> {
+impl<T> Node<T>
+where
+    T: std::fmt::Debug,
+{
     fn new(data: T, parent: Rc<Node<T>>) -> Self {
         Node {
             data,
-            parent_: Some(parent),
+            parent_: RefCell::new(Some(parent)),
             children: RefCell::default(),
         }
     }
@@ -63,8 +87,9 @@ impl<T> Node<T> {
         self.children.borrow_mut().push(Rc::new(n));
     }
 
-    pub fn append_node(&self, node: Rc<Node<T>>) {
-        self.children.borrow_mut().push(node)
+    pub fn append_node(self: &Rc<Node<T>>, node: Rc<Node<T>>) {
+        self.children.borrow_mut().push(node.clone());
+        *node.parent_.borrow_mut() = Some(self.clone());
     }
 
     pub fn remove(&self, index: usize) -> Rc<Node<T>> {
@@ -94,16 +119,31 @@ impl<T> Node<T> {
     }
 
     fn parent(&self) -> Option<Rc<Node<T>>> {
-        match &self.parent_ {
+        let kek = self.parent_.borrow();
+        match kek.as_ref() {
             Some(p) => Some(p.clone()),
             None => None,
         }
+    }
+
+    fn index(self: &Rc<Node<T>>) -> usize {
+        let p = &self.parent_;
+        let p = p.borrow().as_ref().unwrap().clone();
+
+        let ret = p
+            .children
+            .borrow()
+            .iter()
+            .position(|n| Rc::ptr_eq(self, n))
+            .unwrap();
+        ret
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn new() {
         let t: Tree<String> = Tree::new(String::from("hello"));
@@ -125,9 +165,24 @@ mod tests {
     }
 
     #[test]
+    fn index() {
+        let mut t: Tree<String> = Tree::new(String::from("hello"));
+        let r = t.root();
+        for s in &["child1", "child2", "child3"] {
+            r.append_child(s.to_string());
+        }
+
+        let n1 = r.child(1);
+        let n2 = r.child(2);
+
+        assert_eq!(n1.index(), 1);
+        assert_eq!(n2.index(), 2);
+    }
+
+    #[test]
     fn parents() {
         let mut t: Tree<String> = Tree::new(String::from("hello"));
-        let mut r = t.root();
+        let r = t.root();
         for s in &["child1", "child2", "child3"] {
             r.append_child(s.to_string());
         }
@@ -152,7 +207,7 @@ mod tests {
     #[test]
     fn remove_children() {
         let mut t: Tree<String> = Tree::new(String::from("hello"));
-        let mut r = t.root();
+        let r = t.root();
         for s in &["child1", "child2", "child3"] {
             r.append_child(s.to_string());
         }
@@ -172,26 +227,57 @@ mod tests {
     #[test]
     fn move_child() {
         let mut t: Tree<String> = Tree::new(String::from("hello"));
-        let mut r = t.root();
+        let r = t.root();
         for s in &["child1", "child2", "child3"] {
             r.append_child(s.to_string());
         }
 
         let c1 = r.child(1);
+
         c1.append_child(String::from("rofl"));
         c1.append_child(String::from("mao"));
 
+        eprintln!("");
+        t.walk(|level, s| {
+            eprintln!("{}{}", "  ".repeat(level), s);
+        });
+
         let removed = r.remove(2);
+
+        eprintln!("");
+        t.walk(|level, s| {
+            eprintln!("{}{}", "  ".repeat(level), s);
+        });
 
         r.child(1).append_node(removed);
 
-        assert_eq!(c1.child(2).data, String::from("child3"));
+        eprintln!("");
+        t.walk(|level, s| {
+            eprintln!("{}{}", "  ".repeat(level), s);
+        });
+
+        let kek = c1.child(2);
+
+        assert!(Rc::ptr_eq(&kek.parent().unwrap(), &c1), "old parent is c1");
+
+        assert_eq!(kek.data, String::from("child3"));
+
+        t.move_node(&kek, &r);
+
+        eprintln!("");
+        t.walk(|level, s| {
+            eprintln!("{}{}", "  ".repeat(level), s);
+        });
+
+        assert_eq!(r.child_len(), 3);
+
+        assert!(Rc::ptr_eq(&kek.parent().unwrap(), &r), "new parent is root");
     }
 
     #[test]
     fn walk() {
         let mut t: Tree<String> = Tree::new(String::from("hello"));
-        let mut r = t.root();
+        let r = t.root();
         for s in &["child1", "child2", "child3"] {
             r.append_child(s.to_string());
         }
