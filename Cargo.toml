@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 regex = "*"
-simple_tree = { path = "simple_tree", version = "*" }
+# simple_tree = { path = "simple_tree", version = "*" }
 
 [[bin]]
 name = "1"
@@ -37,9 +37,9 @@ path = "src/6.rs"
 name = "7"
 path = "src/7.rs"
 
-# [[bin]]
-# name = "8"
-# path = "src/8.rs"
+[[bin]]
+name = "8"
+path = "src/8.rs"
 
 # [[bin]]
 # name = "9"
